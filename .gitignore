@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+node_modules/
+.next/
+*.egg-info/
+forge-backend-*.out
+forge-backend-*.err
