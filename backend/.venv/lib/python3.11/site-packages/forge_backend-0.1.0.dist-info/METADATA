@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: forge-backend
+Version: 0.1.0
+Summary: FORGE backend — FastAPI server for vLLM inference and benchmarking on HPC
+Requires-Python: >=3.10
+Requires-Dist: fastapi>=0.115
+Requires-Dist: uvicorn[standard]>=0.30
+Requires-Dist: pydantic>=2.7
+Requires-Dist: pydantic-settings>=2.4
+Requires-Dist: psutil>=5.9
+Requires-Dist: nvidia-ml-py>=12.535
+Requires-Dist: httpx>=0.27
+Provides-Extra: vllm
+Requires-Dist: vllm>=0.6.0; extra == "vllm"
+Provides-Extra: bench
+Requires-Dist: lm-eval>=0.4.4; extra == "bench"

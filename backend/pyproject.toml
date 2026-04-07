@@ -1,0 +1,25 @@
+[project]
+name = "forge-backend"
+version = "0.1.0"
+description = "FORGE backend — FastAPI server for vLLM inference and benchmarking on HPC"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.4",
+    "psutil>=5.9",
+    "nvidia-ml-py>=12.535",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+vllm = ["vllm>=0.6.0"]
+bench = ["lm-eval>=0.4.4"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
