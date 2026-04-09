@@ -15,7 +15,7 @@ dependencies = [
 
 [project.optional-dependencies]
 vllm = ["vllm>=0.6.0"]
-bench = ["lm-eval>=0.4.4"]
+bench = ["lm-eval>=0.4.4", "pyarrow>=17"]
 
 [build-system]
 requires = ["setuptools>=68"]

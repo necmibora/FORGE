@@ -1,16 +1,52 @@
 "use client";
+
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+
 import { api } from "@/lib/api";
-import type { BenchJob, BenchmarkInfo, BenchmarkId } from "@/lib/types";
+import type {
+  BenchHistoryEntry,
+  BenchJob,
+  BenchmarkId,
+  BenchmarkInfo,
+} from "@/lib/types";
 
 const STATUS_LABELS: Record<BenchJob["status"], string> = {
-  queued: "Sırada",
-  running: "Çalışıyor",
-  completed: "Tamamlandı",
+  queued: "Sirada",
+  running: "Calisiyor",
+  completed: "Tamamlandi",
   failed: "Hata",
-  cancelled: "İptal edildi",
+  cancelled: "Iptal edildi",
 };
+
+function formatPercent(score: number | null) {
+  return score == null ? "-" : `${(score * 100).toFixed(1)}%`;
+}
+
+function formatDuration(seconds: number | null) {
+  return seconds == null ? "-" : `${seconds.toFixed(1)} s`;
+}
+
+function formatTimestamp(ts: number | null) {
+  if (ts == null) return "-";
+  return new Date(ts * 1000).toLocaleString("tr-TR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
+function modelLabel(path: string | null) {
+  if (!path) return "Model yok";
+  const normalized = path.replace(/\\/g, "/");
+  return normalized.split("/").filter(Boolean).pop() ?? path;
+}
+
+function historyConditions(item: BenchHistoryEntry) {
+  const requested = item.limit ?? item.examples_total;
+  const sample = `${requested}/${item.examples_total || "?"} ex`;
+  const subjectText = item.subject_count ? ` - ${item.subject_count} subject` : "";
+  return `${sample}${subjectText} - temp ${item.temperature} - max ${item.max_tokens}`;
+}
 
 export default function BenchmarkPage() {
   const qc = useQueryClient();
@@ -24,12 +60,30 @@ export default function BenchmarkPage() {
     queryFn: api.loaded,
     refetchInterval: 5000,
   });
+  const history = useQuery({
+    queryKey: ["benchHistory"],
+    queryFn: api.benchHistory,
+    refetchInterval: 5000,
+  });
 
   const [selectedId, setSelectedId] = useState<BenchmarkId>("arc_easy");
   const [limit, setLimit] = useState<number>(50);
   const [useFull, setUseFull] = useState(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [historySyncedJobId, setHistorySyncedJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const selected: BenchmarkInfo | undefined = benchmarks.data?.benchmarks.find(
+    (b) => b.id === selectedId,
+  );
+
+  useEffect(() => {
+    if (!selected) return;
+    if (useFull) return;
+    if (limit > selected.total_examples && selected.total_examples > 0) {
+      setLimit(selected.total_examples);
+    }
+  }, [limit, selected, useFull]);
 
   const job = useQuery({
     queryKey: ["benchJob", activeJobId],
@@ -43,6 +97,19 @@ export default function BenchmarkPage() {
     },
   });
 
+  useEffect(() => {
+    const data = job.data;
+    if (!data) return;
+    const isTerminal =
+      data.status === "completed" ||
+      data.status === "failed" ||
+      data.status === "cancelled";
+    if (!isTerminal) return;
+    if (historySyncedJobId === data.id) return;
+    setHistorySyncedJobId(data.id);
+    qc.invalidateQueries({ queryKey: ["benchHistory"] });
+  }, [historySyncedJobId, job.data, qc]);
+
   const run = useMutation({
     mutationFn: () => {
       setError(null);
@@ -55,6 +122,7 @@ export default function BenchmarkPage() {
     },
     onSuccess: (j) => {
       setActiveJobId(j.id);
+      setHistorySyncedJobId(null);
       qc.invalidateQueries({ queryKey: ["benchJob", j.id] });
     },
     onError: (e: Error) => setError(e.message),
@@ -62,50 +130,49 @@ export default function BenchmarkPage() {
 
   const cancel = useMutation({
     mutationFn: () => api.cancelBenchJob(activeJobId as string),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["benchJob", activeJobId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["benchJob", activeJobId] });
+      qc.invalidateQueries({ queryKey: ["benchHistory"] });
+    },
     onError: (e: Error) => setError(e.message),
   });
 
-  const selected: BenchmarkInfo | undefined = benchmarks.data?.benchmarks.find(
-    (b) => b.id === selectedId,
-  );
-
   const j = job.data;
+  const activeBenchmark = j
+    ? benchmarks.data?.benchmarks.find((b) => b.id === j.benchmark)
+    : undefined;
   const isLive = j?.status === "running" || j?.status === "queued";
   const progressPct =
     j && j.examples_total > 0
       ? Math.round((j.examples_done / j.examples_total) * 100)
       : 0;
   const elapsed =
-    j?.started_at != null
-      ? ((j.finished_at ?? Date.now() / 1000) - j.started_at)
-      : null;
+    j?.started_at != null ? (j.finished_at ?? Date.now() / 1000) - j.started_at : null;
 
   return (
-    <div className="grid md:grid-cols-[1fr_320px] gap-4">
-      {/* Main panel */}
+    <div className="grid gap-4 md:grid-cols-[1fr_320px]">
       <div className="space-y-4">
         <div>
           <h1 className="text-xl font-semibold">Benchmark</h1>
-          <p className="text-forge-muted text-sm">
-            Yüklü model üzerinde değerlendirme suite'leri çalıştır.
+          <p className="text-sm text-forge-muted">
+            Yuklu model uzerinde benchmark kos ve gecmis sonuclari incele.
           </p>
         </div>
 
         {!loaded.data?.loaded && (
-          <div className="card border-yellow-900 text-yellow-400 text-sm">
-            Yüklü model yok — Models sayfasından bir model yükleyin.
+          <div className="card border-yellow-900 text-sm text-yellow-400">
+            Yuklu model yok. Once Models sayfasindan bir model yukleyin.
           </div>
         )}
 
         {error && (
-          <div className="card border-red-900 text-red-400 text-sm">{error}</div>
+          <div className="card border-red-900 text-sm text-red-400">{error}</div>
         )}
 
         <div className="space-y-2">
-          <div className="label">Mevcut benchmark'lar</div>
+          <div className="label">Mevcut benchmarklar</div>
           {benchmarks.isLoading && (
-            <div className="text-forge-muted text-sm">Yükleniyor…</div>
+            <div className="text-sm text-forge-muted">Yukleniyor...</div>
           )}
           {benchmarks.data?.benchmarks.map((b) => {
             const active = b.id === selectedId;
@@ -114,30 +181,28 @@ export default function BenchmarkPage() {
                 key={b.id}
                 onClick={() => setSelectedId(b.id)}
                 className={`card w-full text-left transition ${
-                  active
-                    ? "border-forge-accent"
-                    : "hover:border-forge-text/30"
+                  active ? "border-forge-accent" : "hover:border-forge-text/30"
                 }`}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{b.name}</span>
                   <span className="badge">{b.kind}</span>
                   <span className="badge">{b.total_examples} ex</span>
+                  {b.subject_count != null && (
+                    <span className="badge">{b.subject_count} subject</span>
+                  )}
                 </div>
-                <div className="text-xs text-forge-muted mt-1">
-                  {b.description}
-                </div>
+                <div className="mt-1 text-xs text-forge-muted">{b.description}</div>
               </button>
             );
           })}
         </div>
 
-        {/* Job status */}
         {j ? (
           <div className="card space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{selected?.name}</span>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">{activeBenchmark?.name ?? j.benchmark}</span>
                 <span
                   className={`badge ${
                     j.status === "completed"
@@ -156,12 +221,11 @@ export default function BenchmarkPage() {
                   onClick={() => cancel.mutate()}
                   disabled={cancel.isPending}
                 >
-                  {cancel.isPending ? "İptal ediliyor…" : "İptal"}
+                  {cancel.isPending ? "Iptal ediliyor..." : "Iptal"}
                 </button>
               )}
             </div>
 
-            {/* Progress bar */}
             <div>
               <div className="flex justify-between text-xs text-forge-muted">
                 <span>
@@ -169,7 +233,7 @@ export default function BenchmarkPage() {
                 </span>
                 <span>{progressPct}%</span>
               </div>
-              <div className="h-2 bg-forge-border rounded mt-1 overflow-hidden">
+              <div className="mt-1 h-2 overflow-hidden rounded bg-forge-border">
                 <div
                   className="h-full bg-forge-accent transition-all"
                   style={{ width: `${progressPct}%` }}
@@ -179,51 +243,132 @@ export default function BenchmarkPage() {
 
             <div className="grid grid-cols-2 gap-3 text-xs font-mono">
               <div>
-                <div className="text-forge-muted">Doğru</div>
+                <div className="text-forge-muted">Dogru</div>
                 <div className="text-base">{j.correct}</div>
               </div>
               <div>
                 <div className="text-forge-muted">Skor</div>
-                <div className="text-base">
-                  {j.score != null ? `${(j.score * 100).toFixed(1)}%` : "—"}
-                </div>
+                <div className="text-base">{formatPercent(j.score)}</div>
               </div>
               <div>
-                <div className="text-forge-muted">Geçen süre</div>
-                <div>{elapsed != null ? `${elapsed.toFixed(1)} s` : "—"}</div>
+                <div className="text-forge-muted">Gecen sure</div>
+                <div>{formatDuration(elapsed)}</div>
               </div>
               <div>
-                <div className="text-forge-muted">Limit</div>
-                <div>{j.limit ?? "tümü"}</div>
+                <div className="text-forge-muted">Orneklem</div>
+                <div>{j.limit ?? "tumu"}</div>
+              </div>
+              <div>
+                <div className="text-forge-muted">Temperature</div>
+                <div>{j.temperature}</div>
+              </div>
+              <div>
+                <div className="text-forge-muted">Max tokens</div>
+                <div>{j.max_tokens}</div>
               </div>
             </div>
 
             {j.model_path && (
-              <div className="text-[11px] text-forge-muted font-mono break-all">
+              <div className="break-all font-mono text-[11px] text-forge-muted">
                 {j.model_path}
               </div>
             )}
 
             {j.error && (
-              <div className="text-xs text-red-400 border border-red-900 rounded p-2">
+              <div className="rounded border border-red-900 p-2 text-xs text-red-400">
                 {j.error}
               </div>
             )}
           </div>
         ) : (
-          <div className="card text-forge-muted text-sm">
-            Henüz çalıştırılan bir benchmark yok.
+          <div className="card text-sm text-forge-muted">
+            Henuz calistirilan bir benchmark yok.
           </div>
         )}
+
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">History</h2>
+              <p className="text-sm text-forge-muted">
+                Son benchmark kosulari ve kosul ozeti.
+              </p>
+            </div>
+            {history.isFetching && (
+              <span className="text-xs text-forge-muted">Guncelleniyor...</span>
+            )}
+          </div>
+
+          {history.isLoading && (
+            <div className="card text-sm text-forge-muted">History yukleniyor...</div>
+          )}
+
+          {history.data?.length === 0 && (
+            <div className="card text-sm text-forge-muted">
+              Henuz kaydedilmis benchmark sonucu yok.
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {history.data?.map((item) => (
+              <div key={item.id} className="card space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium">{item.benchmark_name}</span>
+                      <span className="badge">{STATUS_LABELS[item.status]}</span>
+                      <span className="badge">{formatPercent(item.score)}</span>
+                    </div>
+                    <div className="text-xs text-forge-muted">
+                      {historyConditions(item)}
+                    </div>
+                  </div>
+                  <div className="text-right text-xs text-forge-muted">
+                    <div>{formatTimestamp(item.finished_at ?? item.started_at)}</div>
+                    <div>{formatDuration(item.duration_seconds)}</div>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 text-xs md:grid-cols-4">
+                  <div>
+                    <div className="text-forge-muted">Model</div>
+                    <div className="font-mono text-forge-text">
+                      {modelLabel(item.model_path)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-forge-muted">Dogru / Toplam</div>
+                    <div className="font-mono text-forge-text">
+                      {item.correct} / {item.examples_done}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-forge-muted">Benchmark</div>
+                    <div className="font-mono text-forge-text">{item.benchmark}</div>
+                  </div>
+                  <div>
+                    <div className="text-forge-muted">Job ID</div>
+                    <div className="truncate font-mono text-forge-text">{item.id}</div>
+                  </div>
+                </div>
+
+                {item.error && (
+                  <div className="rounded border border-red-900 p-2 text-xs text-red-400">
+                    {item.error}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
 
-      {/* Sidebar */}
-      <aside className="card space-y-4 self-start">
+      <aside className="card self-start space-y-4">
         <div>
-          <label className="label">Örneklem boyutu</label>
+          <label className="label">Orneklem boyutu</label>
           <div className="flex items-center justify-between text-xs">
             <span className="text-forge-muted">Limit</span>
-            <span className="font-mono">{useFull ? "tümü" : limit}</span>
+            <span className="font-mono">{useFull ? "tumu" : limit}</span>
           </div>
           <input
             type="range"
@@ -232,10 +377,10 @@ export default function BenchmarkPage() {
             step={10}
             value={limit}
             disabled={useFull}
-            onChange={(e) => setLimit(parseInt(e.target.value))}
+            onChange={(e) => setLimit(parseInt(e.target.value, 10))}
             className="w-full accent-[#e30613] disabled:opacity-50"
           />
-          <label className="flex items-center gap-2 mt-2 text-xs cursor-pointer">
+          <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs">
             <input
               type="checkbox"
               checked={useFull}
@@ -243,9 +388,15 @@ export default function BenchmarkPage() {
               className="accent-[#e30613]"
             />
             <span className="text-forge-muted">
-              Tüm dataset'i çalıştır ({selected?.total_examples ?? "?"} ex)
+              Tum dataseti kos
+              {selected?.total_examples ? ` (${selected.total_examples} ex)` : ""}
             </span>
           </label>
+          {selected?.subject_count != null && (
+            <div className="mt-2 text-[11px] text-forge-muted">
+              Bu benchmark {selected.subject_count} subject icerir.
+            </div>
+          )}
         </div>
 
         <button
@@ -253,16 +404,12 @@ export default function BenchmarkPage() {
           disabled={!loaded.data?.loaded || run.isPending || isLive}
           onClick={() => run.mutate()}
         >
-          {run.isPending
-            ? "Başlatılıyor…"
-            : isLive
-              ? "Çalışıyor…"
-              : "Çalıştır"}
+          {run.isPending ? "Baslatiliyor..." : isLive ? "Calisiyor..." : "Calistir"}
         </button>
 
-        <div className="text-[11px] text-forge-muted leading-relaxed border-t border-forge-border pt-3">
-          Benchmark çalışırken chat geçici olarak duraklatılır (409). vLLM
-          engine tek-iş tutulur ki perf metrikleri saf olsun.
+        <div className="border-t border-forge-border pt-3 text-[11px] leading-relaxed text-forge-muted">
+          Benchmark calisirken chat gecici olarak duraklatilir. vLLM engine tek is
+          tutulur ki performans metrikleri bozulmasin.
         </div>
       </aside>
     </div>

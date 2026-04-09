@@ -60,7 +60,7 @@ export type ChatUsage = {
 
 // ── Benchmarks ────────────────────────────────────────────────────────────
 
-export type BenchmarkId = "arc_easy";
+export type BenchmarkId = "arc_easy" | "mmlu";
 
 export type BenchmarkInfo = {
   id: BenchmarkId;
@@ -68,6 +68,7 @@ export type BenchmarkInfo = {
   description: string;
   total_examples: number;
   kind: "mcq" | "generation";
+  subject_count: number | null;
 };
 
 export type BenchmarkList = { benchmarks: BenchmarkInfo[] };
@@ -92,6 +93,28 @@ export type BenchJob = {
   score: number | null;
   error: string | null;
   limit: number | null;
+  temperature: number;
+  max_tokens: number;
+};
+
+export type BenchHistoryEntry = {
+  id: string;
+  benchmark: BenchmarkId;
+  benchmark_name: string;
+  status: BenchJobStatus;
+  model_path: string | null;
+  started_at: number | null;
+  finished_at: number | null;
+  duration_seconds: number | null;
+  examples_done: number;
+  examples_total: number;
+  correct: number;
+  score: number | null;
+  error: string | null;
+  limit: number | null;
+  temperature: number;
+  max_tokens: number;
+  subject_count: number | null;
 };
 
 export type RunBenchmarkRequest = {

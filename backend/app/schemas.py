@@ -63,7 +63,7 @@ class ChatRequest(BaseModel):
 
 # ─── Benchmark ────────────────────────────────────────────────────────────
 
-BenchmarkId = Literal["arc_easy"]
+BenchmarkId = Literal["arc_easy", "mmlu"]
 BenchJobStatus = Literal["queued", "running", "completed", "failed", "cancelled"]
 
 
@@ -73,6 +73,7 @@ class BenchmarkInfo(BaseModel):
     description: str
     total_examples: int
     kind: Literal["mcq", "generation"] = "mcq"
+    subject_count: Optional[int] = None
 
 
 class BenchmarkList(BaseModel):
@@ -100,3 +101,25 @@ class BenchJobView(BaseModel):
     score: Optional[float] = None  # accuracy in [0,1]
     error: Optional[str] = None
     limit: Optional[int] = None
+    temperature: float
+    max_tokens: int
+
+
+class BenchHistoryEntry(BaseModel):
+    id: str
+    benchmark: BenchmarkId
+    benchmark_name: str
+    status: BenchJobStatus
+    model_path: Optional[str] = None
+    started_at: Optional[float] = None
+    finished_at: Optional[float] = None
+    duration_seconds: Optional[float] = None
+    examples_done: int = 0
+    examples_total: int = 0
+    correct: int = 0
+    score: Optional[float] = None
+    error: Optional[str] = None
+    limit: Optional[int] = None
+    temperature: float
+    max_tokens: int
+    subject_count: Optional[int] = None

@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     models_dir: Path = Path("/shared/models/base")
     quant_dir: Path = Path("/shared/models/quant")
     datasets_dir: Path = Path("/shared/datasets")
+    benchmark_history_path: Path = (
+        Path(__file__).resolve().parents[1] / "data" / "history" / "benchmark_runs.jsonl"
+    )
 
     host: str = "0.0.0.0"
     port: int = 8000

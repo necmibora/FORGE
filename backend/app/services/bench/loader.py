@@ -38,3 +38,21 @@ def count_jsonl(name: str) -> int:
         return 0
     with p.open("r", encoding="utf-8") as f:
         return sum(1 for line in f if line.strip())
+
+
+def count_unique_jsonl(name: str, key: str) -> int:
+    p = dataset_path(name)
+    if not p.exists():
+        return 0
+
+    values: set[str] = set()
+    with p.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            obj = json.loads(line)
+            value = obj.get(key)
+            if value is not None:
+                values.add(str(value))
+    return len(values)

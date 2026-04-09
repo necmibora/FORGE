@@ -1,10 +1,12 @@
 from fastapi import APIRouter, HTTPException
 
 from app.schemas import (
+    BenchHistoryEntry,
     BenchJobView,
     BenchmarkList,
     RunBenchmarkRequest,
 )
+from app.services.bench.history import history_store
 from app.services.bench.manager import bench_manager
 from app.services.bench.registry import BENCHMARKS
 
@@ -35,6 +37,11 @@ async def run_benchmark(req: RunBenchmarkRequest) -> BenchJobView:
 @router.get("/jobs", response_model=list[BenchJobView])
 def list_jobs() -> list[BenchJobView]:
     return bench_manager.list_jobs()
+
+
+@router.get("/history", response_model=list[BenchHistoryEntry])
+def list_history() -> list[BenchHistoryEntry]:
+    return history_store.list()
 
 
 @router.get("/jobs/{job_id}", response_model=BenchJobView)

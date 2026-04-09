@@ -11,8 +11,10 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Optional
 
-from app.schemas import BenchJobStatus, BenchJobView
-from app.services.bench import arc
+from app.schemas import BenchHistoryEntry, BenchJobStatus, BenchJobView
+from app.services.bench import arc, mmlu
+from app.services.bench.history import history_store
+from app.services.bench.registry import BENCHMARKS
 from app.services.vllm_runner import runner
 
 
@@ -49,6 +51,8 @@ class BenchJob:
             score=self.score,
             error=self.error,
             limit=self.limit,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
         )
 
 
@@ -129,6 +133,15 @@ class BenchManager:
                     should_cancel=should_cancel,
                 ):
                     pass
+            elif job.benchmark == mmlu.NAME:
+                async for _ in mmlu.run(
+                    limit=job.limit,
+                    temperature=job.temperature,
+                    max_tokens=job.max_tokens,
+                    on_progress=on_progress,
+                    should_cancel=should_cancel,
+                ):
+                    pass
             else:
                 raise ValueError(f"Unknown benchmark: {job.benchmark}")
 
@@ -143,9 +156,41 @@ class BenchManager:
             job.error = f"{type(e).__name__}: {e}"
         finally:
             job.finished_at = time.time()
+            try:
+                self._persist_job(job)
+            except Exception:
+                pass
             runner.release_bench()
             if self._current_id == job.id:
                 self._current_id = None
+
+    def _persist_job(self, job: BenchJob) -> None:
+        info = BENCHMARKS.get(job.benchmark)
+        duration_seconds = None
+        if job.started_at is not None and job.finished_at is not None:
+            duration_seconds = max(job.finished_at - job.started_at, 0.0)
+
+        history_store.append(
+            BenchHistoryEntry(
+                id=job.id,
+                benchmark=job.benchmark,  # type: ignore[arg-type]
+                benchmark_name=info.name if info else job.benchmark,
+                status=job.status,
+                model_path=job.model_path,
+                started_at=job.started_at,
+                finished_at=job.finished_at,
+                duration_seconds=duration_seconds,
+                examples_done=job.examples_done,
+                examples_total=job.examples_total,
+                correct=job.correct,
+                score=job.score,
+                error=job.error,
+                limit=job.limit,
+                temperature=job.temperature,
+                max_tokens=job.max_tokens,
+                subject_count=info.subject_count if info else None,
+            )
+        )
 
 
 bench_manager = BenchManager()

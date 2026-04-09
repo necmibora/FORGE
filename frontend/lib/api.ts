@@ -7,6 +7,7 @@ import type {
   ChatUsage,
   BenchmarkList,
   BenchJob,
+  BenchHistoryEntry,
   RunBenchmarkRequest,
 } from "./types";
 
@@ -50,6 +51,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify(req),
     }),
+  benchHistory: () => j<BenchHistoryEntry[]>("/benchmarks/history"),
   benchJob: (id: string) => j<BenchJob>(`/benchmarks/jobs/${id}`),
   benchJobs: () => j<BenchJob[]>("/benchmarks/jobs"),
   cancelBenchJob: (id: string) =>
