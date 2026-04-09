@@ -71,6 +71,8 @@ class VLLMRunner:
     async def _unload_locked(self) -> None:
         if self._engine is None:
             return
+
+        # 1. Shutdown the engine (stops background workers)
         try:
             shutdown = getattr(self._engine, "shutdown", None)
             if shutdown:
@@ -79,14 +81,36 @@ class VLLMRunner:
                     await res
         except Exception:
             pass
+
+        # 2. Drop all references so GC can collect
         self._engine = None
+        self._tokenizer = None
         self._loaded_path = None
         self._loaded_quant = None
+
+        # 3. Destroy NCCL process group to prevent resource leaks
         try:
-            import gc, torch  # type: ignore
-            gc.collect()
+            import torch.distributed as dist  # type: ignore
+            if dist.is_initialized():
+                dist.destroy_process_group()
+        except Exception:
+            pass
+
+        # 4. Aggressive garbage collection — multiple cycles to break
+        #    circular references held by vLLM / PyTorch internals
+        try:
+            import gc
+            for _ in range(3):
+                gc.collect()
+        except Exception:
+            pass
+
+        # 5. Release GPU memory
+        try:
+            import torch  # type: ignore
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
+                torch.cuda.reset_peak_memory_stats()
         except Exception:
             pass
 
