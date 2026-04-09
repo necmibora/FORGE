@@ -166,6 +166,47 @@ class VLLMRunner:
             "completion_tokens": completion_tokens,
         }
 
+    def format_prompt_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+    ) -> str:
+        """Format a prompt using the model's chat template with tool definitions.
+
+        Requires the loaded model's tokenizer to support the ``tools``
+        parameter in ``apply_chat_template``.  Raises ``RuntimeError`` if
+        the tokenizer has no chat template or does not accept ``tools``.
+        """
+        try:
+            from transformers import AutoTokenizer  # type: ignore
+
+            if self._tokenizer is None and self._loaded_path:
+                self._tokenizer = AutoTokenizer.from_pretrained(self._loaded_path)
+        except Exception as exc:
+            raise RuntimeError(f"Cannot load tokenizer: {exc}") from exc
+
+        if self._tokenizer is None:
+            raise RuntimeError("No tokenizer available")
+
+        if not getattr(self._tokenizer, "chat_template", None):
+            raise RuntimeError(
+                "This model's tokenizer has no chat_template. "
+                "Function-calling benchmark requires a model with tool support "
+                "(e.g. Llama 3.1+, Qwen, Hermes)."
+            )
+
+        try:
+            return self._tokenizer.apply_chat_template(
+                messages,
+                tools=tools,
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+        except TypeError:
+            raise RuntimeError(
+                "This model's chat_template does not accept 'tools'. "
+                "Function-calling benchmark requires a tool-aware model."
+            )
 
     async def generate_one(
         self,

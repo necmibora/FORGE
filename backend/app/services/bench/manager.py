@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from app.schemas import BenchHistoryEntry, BenchJobStatus, BenchJobView
-from app.services.bench import arc, mmlu
+from app.services.bench import arc, fc, mmlu
 from app.services.bench.history import history_store
 from app.services.bench.registry import BENCHMARKS
 from app.services.vllm_runner import runner
@@ -135,6 +135,15 @@ class BenchManager:
                     pass
             elif job.benchmark == mmlu.NAME:
                 async for _ in mmlu.run(
+                    limit=job.limit,
+                    temperature=job.temperature,
+                    max_tokens=job.max_tokens,
+                    on_progress=on_progress,
+                    should_cancel=should_cancel,
+                ):
+                    pass
+            elif job.benchmark == fc.NAME:
+                async for _ in fc.run(
                     limit=job.limit,
                     temperature=job.temperature,
                     max_tokens=job.max_tokens,

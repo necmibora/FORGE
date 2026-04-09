@@ -19,6 +19,17 @@ const STATUS_LABELS: Record<BenchJob["status"], string> = {
   cancelled: "Iptal edildi",
 };
 
+const KIND_LABELS: Record<string, string> = {
+  mcq: "mcq",
+  generation: "generation",
+  function_calling: "function calling",
+};
+
+/** FC benchmarks need more tokens to produce a full JSON call. */
+function defaultMaxTokens(kind: string | undefined): number {
+  return kind === "function_calling" ? 256 : 4;
+}
+
 function formatPercent(score: number | null) {
   return score == null ? "-" : `${(score * 100).toFixed(1)}%`;
 }
@@ -117,7 +128,7 @@ export default function BenchmarkPage() {
         benchmark: selectedId,
         limit: useFull ? null : limit,
         temperature: 0,
-        max_tokens: 4,
+        max_tokens: defaultMaxTokens(selected?.kind),
       });
     },
     onSuccess: (j) => {
@@ -186,7 +197,7 @@ export default function BenchmarkPage() {
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{b.name}</span>
-                  <span className="badge">{b.kind}</span>
+                  <span className="badge">{KIND_LABELS[b.kind] ?? b.kind}</span>
                   <span className="badge">{b.total_examples} ex</span>
                   {b.subject_count != null && (
                     <span className="badge">{b.subject_count} subject</span>

@@ -60,14 +60,14 @@ export type ChatUsage = {
 
 // ── Benchmarks ────────────────────────────────────────────────────────────
 
-export type BenchmarkId = "arc_easy" | "mmlu";
+export type BenchmarkId = "arc_easy" | "mmlu" | "bfcl_simple";
 
 export type BenchmarkInfo = {
   id: BenchmarkId;
   name: string;
   description: string;
   total_examples: number;
-  kind: "mcq" | "generation";
+  kind: "mcq" | "generation" | "function_calling";
   subject_count: number | null;
 };
 

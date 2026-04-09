@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from app.schemas import BenchmarkInfo
-from app.services.bench import arc, mmlu
+from app.services.bench import arc, fc, mmlu
 
 BENCHMARKS: dict[str, BenchmarkInfo] = {
     arc.NAME: BenchmarkInfo(
@@ -25,5 +25,16 @@ BENCHMARKS: dict[str, BenchmarkInfo] = {
         total_examples=mmlu.total_examples(),
         kind="mcq",
         subject_count=mmlu.subject_count() or None,
+    ),
+    fc.NAME: BenchmarkInfo(
+        id="bfcl_simple",
+        name="BFCL Simple",
+        description=(
+            "Berkeley Function Calling Leaderboard — Simple category. "
+            "Single function call with exact-match scoring. "
+            "Requires a tool-aware model (Llama 3.1+, Qwen, Hermes)."
+        ),
+        total_examples=fc.total_examples(),
+        kind="function_calling",
     ),
 }

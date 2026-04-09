@@ -63,7 +63,7 @@ class ChatRequest(BaseModel):
 
 # ─── Benchmark ────────────────────────────────────────────────────────────
 
-BenchmarkId = Literal["arc_easy", "mmlu"]
+BenchmarkId = Literal["arc_easy", "mmlu", "bfcl_simple"]
 BenchJobStatus = Literal["queued", "running", "completed", "failed", "cancelled"]
 
 
@@ -72,7 +72,7 @@ class BenchmarkInfo(BaseModel):
     name: str
     description: str
     total_examples: int
-    kind: Literal["mcq", "generation"] = "mcq"
+    kind: Literal["mcq", "generation", "function_calling"] = "mcq"
     subject_count: Optional[int] = None
 
 
