@@ -15,16 +15,28 @@ async def chat(req: ChatRequest):
         raise HTTPException(409, "No model loaded. POST /models/load first.")
 
     async def event_stream():
+        error_msg: str | None = None
         try:
-            async for delta in runner.stream_chat(
+            async for event in runner.stream_chat(
                 messages=req.messages,
                 max_tokens=req.max_tokens,
                 temperature=req.temperature,
                 top_p=req.top_p,
             ):
-                yield f"data: {json.dumps({'delta': delta})}\n\n"
-            yield "data: [DONE]\n\n"
+                if event["type"] == "delta":
+                    yield f"data: {json.dumps({'delta': event['text']})}\n\n"
+                elif event["type"] == "usage":
+                    payload = {
+                        "usage": {
+                            "prompt_tokens": event["prompt_tokens"],
+                            "completion_tokens": event["completion_tokens"],
+                        }
+                    }
+                    yield f"data: {json.dumps(payload)}\n\n"
         except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            error_msg = str(e)
+        if error_msg:
+            yield f"data: {json.dumps({'error': error_msg})}\n\n"
+        yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")

@@ -21,7 +21,7 @@ source ~/.venv/bin/activate
 export FORGE_MODELS_DIR="${FORGE_MODELS_DIR:-/cta/users/quantization/base_models}"
 export FORGE_QUANT_DIR="${FORGE_QUANT_DIR:-/cta/users/quantization/quantized_models}"
 export FORGE_DATASETS_DIR="${FORGE_DATASETS_DIR:-/cta/users/quantization/datasets}"
-export FORGE_PORT="${FORGE_PORT:-8007}"
+export FORGE_PORT="${FORGE_PORT:-8000}"
 
 cd "${FORGE_HOME:-$HOME/FORGE}/backend"
 

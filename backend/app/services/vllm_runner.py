@@ -97,7 +97,11 @@ class VLLMRunner:
         max_tokens: int,
         temperature: float,
         top_p: float,
-    ) -> AsyncIterator[str]:
+    ) -> AsyncIterator[dict]:
+        """Yields events:
+        - {"type": "delta", "text": "..."} for each new chunk
+        - {"type": "usage", "prompt_tokens": N, "completion_tokens": M} once at end
+        """
         if self._engine is None:
             raise RuntimeError("No model loaded")
 
@@ -112,13 +116,37 @@ class VLLMRunner:
         request_id = str(uuid.uuid4())
 
         previous = ""
+        # Track tokens incrementally so we never rely on the very last
+        # RequestOutput having a populated `outputs` list.
+        prompt_tokens = 0
+        completion_tokens = 0
         async for out in self._engine.generate(prompt, sp, request_id):
+            try:
+                ptids = getattr(out, "prompt_token_ids", None)
+                if ptids:
+                    prompt_tokens = len(ptids)
+            except Exception:
+                pass
             if not out.outputs:
                 continue
+            try:
+                tids = getattr(out.outputs[0], "token_ids", None)
+                if tids is not None:
+                    completion_tokens = max(completion_tokens, len(tids))
+            except Exception:
+                pass
             text = out.outputs[0].text
             if len(text) > len(previous):
-                yield text[len(previous):]
+                yield {"type": "delta", "text": text[len(previous):]}
                 previous = text
+
+        # Always emit usage so the client can finalize, even if token counts
+        # could not be determined (in which case they'll be 0).
+        yield {
+            "type": "usage",
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+        }
 
 
 runner = VLLMRunner()
