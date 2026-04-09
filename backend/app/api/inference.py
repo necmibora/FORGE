@@ -13,6 +13,10 @@ router = APIRouter(tags=["inference"])
 async def chat(req: ChatRequest):
     if not runner.loaded:
         raise HTTPException(409, "No model loaded. POST /models/load first.")
+    if runner.bench_running:
+        raise HTTPException(
+            409, "A benchmark is currently running. Chat is paused until it finishes."
+        )
 
     async def event_stream():
         error_msg: str | None = None

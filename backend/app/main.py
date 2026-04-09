@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.api import system, models, inference
+from app.api import system, models, inference, benchmarks
 
 app = FastAPI(title="FORGE Backend", version="0.1.0")
 
@@ -17,6 +17,7 @@ app.add_middleware(
 app.include_router(system.router)
 app.include_router(models.router)
 app.include_router(inference.router)
+app.include_router(benchmarks.router)
 
 
 @app.get("/")

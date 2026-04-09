@@ -21,8 +21,8 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e .
 FORGE_MODELS_DIR=/tmp/models FORGE_QUANT_DIR=/tmp/quant \
     uvicorn app.main:app --reload
-curl http://localhost:8000/system
-curl http://localhost:8000/models
+curl http://localhost:8007/system
+curl http://localhost:8007/models
 ```
 
 Without `vllm` installed, `/system` and `/models` work; `/models/load` will return 503.
@@ -33,8 +33,8 @@ Without `vllm` installed, `/system` and `/models` work; `/models/load` will retu
 sbatch backend/slurm/start_backend.sbatch
 squeue -u $USER          # find the assigned compute node
 # from your laptop:
-ssh -L 8000:<compute-node>:8000 <user>@<login-node>
-curl http://localhost:8000/system
+ssh -L 8007:<compute-node>:8007 <user>@<login-node>
+curl http://localhost:8007/system
 ```
 
 ## Config (env vars, prefix `FORGE_`)

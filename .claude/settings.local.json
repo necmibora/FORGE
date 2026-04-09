@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/bin/python -m py_compile app/services/vllm_runner.py app/api/inference.py)"
+    ]
+  }
+}

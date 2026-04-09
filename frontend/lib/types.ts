@@ -57,3 +57,47 @@ export type ChatUsage = {
   /** completion_tokens / (generation_ms / 1000). */
   throughput: number;
 };
+
+// ── Benchmarks ────────────────────────────────────────────────────────────
+
+export type BenchmarkId = "arc_easy";
+
+export type BenchmarkInfo = {
+  id: BenchmarkId;
+  name: string;
+  description: string;
+  total_examples: number;
+  kind: "mcq" | "generation";
+};
+
+export type BenchmarkList = { benchmarks: BenchmarkInfo[] };
+
+export type BenchJobStatus =
+  | "queued"
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+export type BenchJob = {
+  id: string;
+  benchmark: BenchmarkId;
+  status: BenchJobStatus;
+  model_path: string | null;
+  started_at: number | null;
+  finished_at: number | null;
+  examples_done: number;
+  examples_total: number;
+  correct: number;
+  score: number | null;
+  error: string | null;
+  limit: number | null;
+};
+
+export type RunBenchmarkRequest = {
+  benchmark: BenchmarkId;
+  limit?: number | null;
+  temperature?: number;
+  max_tokens?: number;
+  seed?: number | null;
+};

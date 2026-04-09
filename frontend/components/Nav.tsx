@@ -8,6 +8,7 @@ const links = [
   { href: "/", label: "Dashboard" },
   { href: "/models", label: "Models" },
   { href: "/chat", label: "Chat" },
+  { href: "/benchmark", label: "Benchmark" },
 ];
 
 export function Nav() {

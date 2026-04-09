@@ -15,6 +15,9 @@ class VLLMRunner:
         self._loaded_path: Optional[str] = None
         self._loaded_quant: Optional[str] = None
         self._lock = asyncio.Lock()
+        # When a benchmark is running, chat is rejected with 409. We do not
+        # use an asyncio.Lock here because chat must fail fast (not block).
+        self._bench_running: bool = False
 
     @property
     def loaded(self) -> bool:
@@ -27,6 +30,21 @@ class VLLMRunner:
     @property
     def loaded_quant(self) -> Optional[str]:
         return self._loaded_quant
+
+    @property
+    def bench_running(self) -> bool:
+        return self._bench_running
+
+    def acquire_bench(self) -> bool:
+        """Try to mark the engine as busy with a benchmark. Returns False
+        if a benchmark is already running."""
+        if self._bench_running:
+            return False
+        self._bench_running = True
+        return True
+
+    def release_bench(self) -> None:
+        self._bench_running = False
 
     async def load(self, req: LoadModelRequest) -> None:
         async with self._lock:
@@ -147,6 +165,38 @@ class VLLMRunner:
             "prompt_tokens": prompt_tokens,
             "completion_tokens": completion_tokens,
         }
+
+
+    async def generate_one(
+        self,
+        prompt: str,
+        max_tokens: int = 4,
+        temperature: float = 0.0,
+        top_p: float = 1.0,
+        stop: Optional[list[str]] = None,
+    ) -> str:
+        """Single non-streaming generation. Returns the full output text.
+
+        Used by benchmark runners. Caller is responsible for prompt
+        formatting (raw string, no chat template applied here).
+        """
+        if self._engine is None:
+            raise RuntimeError("No model loaded")
+
+        from vllm import SamplingParams  # type: ignore
+
+        sp = SamplingParams(
+            max_tokens=max_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            stop=stop,
+        )
+        request_id = str(uuid.uuid4())
+        text = ""
+        async for out in self._engine.generate(prompt, sp, request_id):
+            if out.outputs:
+                text = out.outputs[0].text
+        return text
 
 
 runner = VLLMRunner()

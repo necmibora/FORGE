@@ -59,3 +59,44 @@ class ChatRequest(BaseModel):
     temperature: float = 0.7
     top_p: float = 0.95
     stream: bool = True
+
+
+# ─── Benchmark ────────────────────────────────────────────────────────────
+
+BenchmarkId = Literal["arc_easy"]
+BenchJobStatus = Literal["queued", "running", "completed", "failed", "cancelled"]
+
+
+class BenchmarkInfo(BaseModel):
+    id: BenchmarkId
+    name: str
+    description: str
+    total_examples: int
+    kind: Literal["mcq", "generation"] = "mcq"
+
+
+class BenchmarkList(BaseModel):
+    benchmarks: list[BenchmarkInfo]
+
+
+class RunBenchmarkRequest(BaseModel):
+    benchmark: BenchmarkId
+    limit: Optional[int] = Field(default=None, ge=1)
+    temperature: float = 0.0
+    max_tokens: int = 4
+    seed: Optional[int] = None
+
+
+class BenchJobView(BaseModel):
+    id: str
+    benchmark: BenchmarkId
+    status: BenchJobStatus
+    model_path: Optional[str] = None
+    started_at: Optional[float] = None
+    finished_at: Optional[float] = None
+    examples_done: int = 0
+    examples_total: int = 0
+    correct: int = 0
+    score: Optional[float] = None  # accuracy in [0,1]
+    error: Optional[str] = None
+    limit: Optional[int] = None

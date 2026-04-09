@@ -5,6 +5,9 @@ import type {
   LoadModelRequest,
   ChatMessage,
   ChatUsage,
+  BenchmarkList,
+  BenchJob,
+  RunBenchmarkRequest,
 } from "./types";
 
 export const API_BASE =
@@ -41,6 +44,16 @@ export const api = {
     }),
   unload: () =>
     j<LoadedModelStatus>("/models/unload", { method: "POST" }),
+  benchmarks: () => j<BenchmarkList>("/benchmarks"),
+  runBenchmark: (req: RunBenchmarkRequest) =>
+    j<BenchJob>("/benchmarks/run", {
+      method: "POST",
+      body: JSON.stringify(req),
+    }),
+  benchJob: (id: string) => j<BenchJob>(`/benchmarks/jobs/${id}`),
+  benchJobs: () => j<BenchJob[]>("/benchmarks/jobs"),
+  cancelBenchJob: (id: string) =>
+    j<BenchJob>(`/benchmarks/jobs/${id}/cancel`, { method: "POST" }),
 };
 
 /** Stream /chat SSE; calls onDelta for each token chunk and onUsage when the
