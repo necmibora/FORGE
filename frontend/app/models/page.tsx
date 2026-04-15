@@ -18,6 +18,8 @@ export default function ModelsPage() {
   });
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [maxModelLen, setMaxModelLen] = useState<number>(32768);
+  const [gpuUtil, setGpuUtil] = useState<number>(0.9);
 
   const load = useMutation({
     mutationFn: (m: ModelEntry) => {
@@ -26,6 +28,8 @@ export default function ModelsPage() {
       return api.load({
         path: m.path,
         quantization: m.quantization ?? null,
+        max_model_len: maxModelLen,
+        gpu_memory_utilization: gpuUtil,
       });
     },
     onSettled: () => {
@@ -47,7 +51,7 @@ export default function ModelsPage() {
         <div>
           <h1 className="text-xl font-semibold">Models</h1>
           <p className="text-forge-muted text-sm">
-            Cluster'daki base ve quantized modeller.
+            Base and quantized models on the cluster.
           </p>
         </div>
         {loaded.data?.loaded && (
@@ -65,7 +69,33 @@ export default function ModelsPage() {
         <div className="card border-red-900 text-red-400 text-sm">{error}</div>
       )}
 
-      {models.isLoading && <p className="text-forge-muted">Yükleniyor…</p>}
+      <div className="card flex flex-wrap items-center gap-4 text-sm">
+        <label className="flex items-center gap-2">
+          <span className="text-forge-muted">Max Context Length</span>
+          <input
+            type="number"
+            className="input w-28"
+            value={maxModelLen}
+            min={1024}
+            step={1024}
+            onChange={(e) => setMaxModelLen(Number(e.target.value))}
+          />
+        </label>
+        <label className="flex items-center gap-2">
+          <span className="text-forge-muted">GPU Memory %</span>
+          <input
+            type="number"
+            className="input w-20"
+            value={gpuUtil}
+            min={0.5}
+            max={0.99}
+            step={0.05}
+            onChange={(e) => setGpuUtil(Number(e.target.value))}
+          />
+        </label>
+      </div>
+
+      {models.isLoading && <p className="text-forge-muted">Loading…</p>}
       {models.isError && (
         <div className="card border-red-900 text-red-400">
           {(models.error as Error).message}
@@ -113,8 +143,7 @@ export default function ModelsPage() {
         })}
         {models.data?.models.length === 0 && (
           <div className="card text-forge-muted text-sm">
-            Model bulunamadı. FORGE_MODELS_DIR / FORGE_QUANT_DIR env var'larını
-            kontrol edin.
+            No models found. Check FORGE_MODELS_DIR / FORGE_QUANT_DIR env vars.
           </div>
         )}
       </div>

@@ -12,11 +12,11 @@ import type {
 } from "@/lib/types";
 
 const STATUS_LABELS: Record<BenchJob["status"], string> = {
-  queued: "Sirada",
-  running: "Calisiyor",
-  completed: "Tamamlandi",
-  failed: "Hata",
-  cancelled: "Iptal edildi",
+  queued: "Queued",
+  running: "Running",
+  completed: "Completed",
+  failed: "Failed",
+  cancelled: "Cancelled",
 };
 
 const KIND_LABELS: Record<string, string> = {
@@ -40,14 +40,14 @@ function formatDuration(seconds: number | null) {
 
 function formatTimestamp(ts: number | null) {
   if (ts == null) return "-";
-  return new Date(ts * 1000).toLocaleString("tr-TR", {
+  return new Date(ts * 1000).toLocaleString("en-US", {
     dateStyle: "short",
     timeStyle: "short",
   });
 }
 
 function modelLabel(path: string | null) {
-  if (!path) return "Model yok";
+  if (!path) return "No model";
   const normalized = path.replace(/\\/g, "/");
   return normalized.split("/").filter(Boolean).pop() ?? path;
 }
@@ -166,13 +166,13 @@ export default function BenchmarkPage() {
         <div>
           <h1 className="text-xl font-semibold">Benchmark</h1>
           <p className="text-sm text-forge-muted">
-            Yuklu model uzerinde benchmark kos ve gecmis sonuclari incele.
+            Run benchmarks on the loaded model and review past results.
           </p>
         </div>
 
         {!loaded.data?.loaded && (
           <div className="card border-yellow-900 text-sm text-yellow-400">
-            Yuklu model yok. Once Models sayfasindan bir model yukleyin.
+            No model loaded. Load one from the Models page first.
           </div>
         )}
 
@@ -181,9 +181,9 @@ export default function BenchmarkPage() {
         )}
 
         <div className="space-y-2">
-          <div className="label">Mevcut benchmarklar</div>
+          <div className="label">Available benchmarks</div>
           {benchmarks.isLoading && (
-            <div className="text-sm text-forge-muted">Yukleniyor...</div>
+            <div className="text-sm text-forge-muted">Loading...</div>
           )}
           {benchmarks.data?.benchmarks.map((b) => {
             const active = b.id === selectedId;
@@ -232,7 +232,7 @@ export default function BenchmarkPage() {
                   onClick={() => cancel.mutate()}
                   disabled={cancel.isPending}
                 >
-                  {cancel.isPending ? "Iptal ediliyor..." : "Iptal"}
+                  {cancel.isPending ? "Cancelling..." : "Cancel"}
                 </button>
               )}
             </div>
@@ -254,20 +254,20 @@ export default function BenchmarkPage() {
 
             <div className="grid grid-cols-2 gap-3 text-xs font-mono">
               <div>
-                <div className="text-forge-muted">Dogru</div>
+                <div className="text-forge-muted">Correct</div>
                 <div className="text-base">{j.correct}</div>
               </div>
               <div>
-                <div className="text-forge-muted">Skor</div>
+                <div className="text-forge-muted">Score</div>
                 <div className="text-base">{formatPercent(j.score)}</div>
               </div>
               <div>
-                <div className="text-forge-muted">Gecen sure</div>
+                <div className="text-forge-muted">Elapsed</div>
                 <div>{formatDuration(elapsed)}</div>
               </div>
               <div>
-                <div className="text-forge-muted">Orneklem</div>
-                <div>{j.limit ?? "tumu"}</div>
+                <div className="text-forge-muted">Sample</div>
+                <div>{j.limit ?? "full"}</div>
               </div>
               <div>
                 <div className="text-forge-muted">Temperature</div>
@@ -293,7 +293,7 @@ export default function BenchmarkPage() {
           </div>
         ) : (
           <div className="card text-sm text-forge-muted">
-            Henuz calistirilan bir benchmark yok.
+            No benchmark has been run yet.
           </div>
         )}
 
@@ -302,21 +302,21 @@ export default function BenchmarkPage() {
             <div>
               <h2 className="text-lg font-semibold">History</h2>
               <p className="text-sm text-forge-muted">
-                Son benchmark kosulari ve kosul ozeti.
+                Past benchmark runs and condition summaries.
               </p>
             </div>
             {history.isFetching && (
-              <span className="text-xs text-forge-muted">Guncelleniyor...</span>
+              <span className="text-xs text-forge-muted">Refreshing...</span>
             )}
           </div>
 
           {history.isLoading && (
-            <div className="card text-sm text-forge-muted">History yukleniyor...</div>
+            <div className="card text-sm text-forge-muted">Loading history...</div>
           )}
 
           {history.data?.length === 0 && (
             <div className="card text-sm text-forge-muted">
-              Henuz kaydedilmis benchmark sonucu yok.
+              No benchmark results recorded yet.
             </div>
           )}
 
@@ -348,7 +348,7 @@ export default function BenchmarkPage() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-forge-muted">Dogru / Toplam</div>
+                    <div className="text-forge-muted">Correct / Total</div>
                     <div className="font-mono text-forge-text">
                       {item.correct} / {item.examples_done}
                     </div>
@@ -376,10 +376,10 @@ export default function BenchmarkPage() {
 
       <aside className="card self-start space-y-4">
         <div>
-          <label className="label">Orneklem boyutu</label>
+          <label className="label">Sample size</label>
           <div className="flex items-center justify-between text-xs">
             <span className="text-forge-muted">Limit</span>
-            <span className="font-mono">{useFull ? "tumu" : limit}</span>
+            <span className="font-mono">{useFull ? "full" : limit}</span>
           </div>
           <input
             type="range"
@@ -399,13 +399,13 @@ export default function BenchmarkPage() {
               className="accent-[#e30613]"
             />
             <span className="text-forge-muted">
-              Tum dataseti kos
+              Run full dataset
               {selected?.total_examples ? ` (${selected.total_examples} ex)` : ""}
             </span>
           </label>
           {selected?.subject_count != null && (
             <div className="mt-2 text-[11px] text-forge-muted">
-              Bu benchmark {selected.subject_count} subject icerir.
+              This benchmark contains {selected.subject_count} subjects.
             </div>
           )}
         </div>
@@ -415,12 +415,12 @@ export default function BenchmarkPage() {
           disabled={!loaded.data?.loaded || run.isPending || isLive}
           onClick={() => run.mutate()}
         >
-          {run.isPending ? "Baslatiliyor..." : isLive ? "Calisiyor..." : "Calistir"}
+          {run.isPending ? "Starting..." : isLive ? "Running..." : "Run"}
         </button>
 
         <div className="border-t border-forge-border pt-3 text-[11px] leading-relaxed text-forge-muted">
-          Benchmark calisirken chat gecici olarak duraklatilir. vLLM engine tek is
-          tutulur ki performans metrikleri bozulmasin.
+          Chat is temporarily paused while a benchmark is running. The vLLM
+          engine is kept exclusive to ensure accurate performance metrics.
         </div>
       </aside>
     </div>
