@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import os
 import socket
+from typing import Optional
+
 import psutil
 
 from app.schemas import GPUInfo, SystemInfo
@@ -50,6 +52,49 @@ def _gpus() -> list[GPUInfo]:
         except Exception:
             pass
     return out
+
+
+def gpu_snapshot(index: int = 0) -> Optional[dict]:
+    """Lightweight single-GPU sample for benchmark monitoring.
+
+    Returns dict {name, total_mb, used_mb, util_pct, temp_c} or None if NVML
+    is unavailable. Caller should swallow exceptions (best-effort sampling).
+    """
+    try:
+        import pynvml  # type: ignore
+    except ImportError:
+        return None
+    try:
+        pynvml.nvmlInit()
+    except Exception:
+        return None
+    try:
+        if pynvml.nvmlDeviceGetCount() <= index:
+            return None
+        h = pynvml.nvmlDeviceGetHandleByIndex(index)
+        name = pynvml.nvmlDeviceGetName(h)
+        if isinstance(name, bytes):
+            name = name.decode()
+        mem = pynvml.nvmlDeviceGetMemoryInfo(h)
+        util = pynvml.nvmlDeviceGetUtilizationRates(h)
+        try:
+            temp = pynvml.nvmlDeviceGetTemperature(h, pynvml.NVML_TEMPERATURE_GPU)
+        except Exception:
+            temp = None
+        return {
+            "name": name,
+            "total_mb": mem.total // (1024 * 1024),
+            "used_mb": mem.used // (1024 * 1024),
+            "util_pct": int(util.gpu),
+            "temp_c": temp,
+        }
+    except Exception:
+        return None
+    finally:
+        try:
+            pynvml.nvmlShutdown()
+        except Exception:
+            pass
 
 
 def collect_system_info() -> SystemInfo:

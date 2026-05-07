@@ -103,6 +103,18 @@ class BenchJobView(BaseModel):
     limit: Optional[int] = None
     temperature: float
     max_tokens: int
+    # Performance / hardware metrics (populated as the job runs)
+    total_tokens_generated: int = 0
+    avg_throughput_tok_s: Optional[float] = None
+    model_size_bytes: Optional[int] = None
+    model_quantization: Optional[str] = None
+    gpu_name: Optional[str] = None
+    gpu_memory_total_mb: Optional[int] = None
+    vram_used_peak_mb: Optional[int] = None
+    vram_used_avg_mb: Optional[float] = None
+    gpu_temp_avg_c: Optional[float] = None
+    gpu_temp_peak_c: Optional[int] = None
+    gpu_util_avg_pct: Optional[float] = None
 
 
 class BenchHistoryEntry(BaseModel):
@@ -123,3 +135,15 @@ class BenchHistoryEntry(BaseModel):
     temperature: float
     max_tokens: int
     subject_count: Optional[int] = None
+    # Performance / hardware metrics (None for entries written before tracking landed)
+    total_tokens_generated: Optional[int] = None
+    avg_throughput_tok_s: Optional[float] = None
+    model_size_bytes: Optional[int] = None
+    model_quantization: Optional[str] = None
+    gpu_name: Optional[str] = None
+    gpu_memory_total_mb: Optional[int] = None
+    vram_used_peak_mb: Optional[int] = None
+    vram_used_avg_mb: Optional[float] = None
+    gpu_temp_avg_c: Optional[float] = None
+    gpu_temp_peak_c: Optional[int] = None
+    gpu_util_avg_pct: Optional[float] = None

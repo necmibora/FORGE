@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
@@ -83,6 +84,23 @@ export default function BenchmarkPage() {
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [historySyncedJobId, setHistorySyncedJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+
+  const toggleCompare = (id: string) =>
+    setCompareIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+
+  const validHistoryIds = useMemo(
+    () => new Set((history.data ?? []).map((h) => h.id)),
+    [history.data],
+  );
+
+  useEffect(() => {
+    setCompareIds((prev) => prev.filter((id) => validHistoryIds.has(id)));
+  }, [validHistoryIds]);
+
+  const compareHref = `/benchmark/compare?ids=${compareIds.join(",")}`;
 
   const selected: BenchmarkInfo | undefined = benchmarks.data?.benchmarks.find(
     (b) => b.id === selectedId,
@@ -298,16 +316,36 @@ export default function BenchmarkPage() {
         )}
 
         <section className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold">History</h2>
               <p className="text-sm text-forge-muted">
-                Past benchmark runs and condition summaries.
+                Past benchmark runs and condition summaries. Select 2 or more to compare.
               </p>
             </div>
-            {history.isFetching && (
-              <span className="text-xs text-forge-muted">Refreshing...</span>
-            )}
+            <div className="flex items-center gap-3">
+              {history.isFetching && (
+                <span className="text-xs text-forge-muted">Refreshing...</span>
+              )}
+              {compareIds.length > 0 && (
+                <button
+                  type="button"
+                  className="text-xs text-forge-muted hover:text-forge-text"
+                  onClick={() => setCompareIds([])}
+                >
+                  Clear ({compareIds.length})
+                </button>
+              )}
+              {compareIds.length >= 2 ? (
+                <Link href={compareHref} className="btn btn-accent">
+                  Compare ({compareIds.length})
+                </Link>
+              ) : (
+                <button className="btn opacity-50" disabled>
+                  Compare ({compareIds.length})
+                </button>
+              )}
+            </div>
           </div>
 
           {history.isLoading && (
@@ -321,19 +359,32 @@ export default function BenchmarkPage() {
           )}
 
           <div className="space-y-3">
-            {history.data?.map((item) => (
-              <div key={item.id} className="card space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">{item.benchmark_name}</span>
-                      <span className="badge">{STATUS_LABELS[item.status]}</span>
-                      <span className="badge">{formatPercent(item.score)}</span>
+            {history.data?.map((item) => {
+              const checked = compareIds.includes(item.id);
+              return (
+              <div
+                key={item.id}
+                className={`card space-y-3 ${checked ? "border-forge-accent" : ""}`}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleCompare(item.id)}
+                      className="mt-1 accent-[#e30613]"
+                    />
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium">{item.benchmark_name}</span>
+                        <span className="badge">{STATUS_LABELS[item.status]}</span>
+                        <span className="badge">{formatPercent(item.score)}</span>
+                      </div>
+                      <div className="text-xs text-forge-muted">
+                        {historyConditions(item)}
+                      </div>
                     </div>
-                    <div className="text-xs text-forge-muted">
-                      {historyConditions(item)}
-                    </div>
-                  </div>
+                  </label>
                   <div className="text-right text-xs text-forge-muted">
                     <div>{formatTimestamp(item.finished_at ?? item.started_at)}</div>
                     <div>{formatDuration(item.duration_seconds)}</div>
@@ -369,7 +420,8 @@ export default function BenchmarkPage() {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       </div>
