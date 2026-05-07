@@ -52,6 +52,11 @@ export const api = {
       body: JSON.stringify(req),
     }),
   benchHistory: () => j<BenchHistoryEntry[]>("/benchmarks/history"),
+  deleteBenchHistory: (ids: string[]) =>
+    j<{ deleted: number }>("/benchmarks/history/delete", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
   benchJob: (id: string) => j<BenchJob>(`/benchmarks/jobs/${id}`),
   benchJobs: () => j<BenchJob[]>("/benchmarks/jobs"),
   cancelBenchJob: (id: string) =>

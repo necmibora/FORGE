@@ -117,6 +117,14 @@ class BenchJobView(BaseModel):
     gpu_util_avg_pct: Optional[float] = None
 
 
+class DeleteHistoryRequest(BaseModel):
+    ids: list[str]
+
+
+class DeleteHistoryResponse(BaseModel):
+    deleted: int
+
+
 class BenchHistoryEntry(BaseModel):
     id: str
     benchmark: BenchmarkId

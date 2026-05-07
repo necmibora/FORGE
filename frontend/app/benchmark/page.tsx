@@ -102,6 +102,33 @@ export default function BenchmarkPage() {
 
   const compareHref = `/benchmark/compare?ids=${compareIds.join(",")}`;
 
+  const del = useMutation({
+    mutationFn: (ids: string[]) => api.deleteBenchHistory(ids),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["benchHistory"] });
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const deleteOne = (item: BenchHistoryEntry) => {
+    if (!window.confirm(`Delete "${item.benchmark_name}" run?`)) return;
+    del.mutate([item.id]);
+  };
+
+  const deleteSelected = () => {
+    if (compareIds.length === 0) return;
+    if (
+      !window.confirm(
+        `Delete ${compareIds.length} selected benchmark run${
+          compareIds.length === 1 ? "" : "s"
+        }?`,
+      )
+    )
+      return;
+    del.mutate(compareIds);
+    setCompareIds([]);
+  };
+
   const selected: BenchmarkInfo | undefined = benchmarks.data?.benchmarks.find(
     (b) => b.id === selectedId,
   );
@@ -336,6 +363,16 @@ export default function BenchmarkPage() {
                   Clear ({compareIds.length})
                 </button>
               )}
+              {compareIds.length > 0 && (
+                <button
+                  type="button"
+                  className="btn border-red-900 text-red-400 hover:bg-red-950/40"
+                  onClick={deleteSelected}
+                  disabled={del.isPending}
+                >
+                  Delete ({compareIds.length})
+                </button>
+              )}
               {compareIds.length >= 2 ? (
                 <Link href={compareHref} className="btn btn-accent">
                   Compare ({compareIds.length})
@@ -385,9 +422,20 @@ export default function BenchmarkPage() {
                       </div>
                     </div>
                   </label>
-                  <div className="text-right text-xs text-forge-muted">
-                    <div>{formatTimestamp(item.finished_at ?? item.started_at)}</div>
-                    <div>{formatDuration(item.duration_seconds)}</div>
+                  <div className="flex items-start gap-3">
+                    <div className="text-right text-xs text-forge-muted">
+                      <div>{formatTimestamp(item.finished_at ?? item.started_at)}</div>
+                      <div>{formatDuration(item.duration_seconds)}</div>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-xs text-forge-muted hover:text-red-400"
+                      onClick={() => deleteOne(item)}
+                      disabled={del.isPending}
+                      title="Delete this run"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
 
