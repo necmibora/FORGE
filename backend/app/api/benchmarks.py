@@ -4,6 +4,8 @@ from app.schemas import (
     BenchHistoryEntry,
     BenchJobView,
     BenchmarkList,
+    DeleteHistoryRequest,
+    DeleteHistoryResponse,
     RunBenchmarkRequest,
 )
 from app.services.bench.history import history_store
@@ -42,6 +44,12 @@ def list_jobs() -> list[BenchJobView]:
 @router.get("/history", response_model=list[BenchHistoryEntry])
 def list_history() -> list[BenchHistoryEntry]:
     return history_store.list()
+
+
+@router.post("/history/delete", response_model=DeleteHistoryResponse)
+def delete_history(req: DeleteHistoryRequest) -> DeleteHistoryResponse:
+    deleted = history_store.delete(set(req.ids))
+    return DeleteHistoryResponse(deleted=deleted)
 
 
 @router.get("/jobs/{job_id}", response_model=BenchJobView)
