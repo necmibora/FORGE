@@ -251,8 +251,8 @@ class VLLMRunner:
         temperature: float = 0.0,
         top_p: float = 1.0,
         stop: Optional[list[str]] = None,
-    ) -> str:
-        """Single non-streaming generation. Returns the full output text.
+    ) -> tuple[str, int]:
+        """Single non-streaming generation. Returns (text, completion_tokens).
 
         Used by benchmark runners. Caller is responsible for prompt
         formatting (raw string, no chat template applied here).
@@ -270,10 +270,17 @@ class VLLMRunner:
         )
         request_id = str(uuid.uuid4())
         text = ""
+        completion_tokens = 0
         async for out in self._engine.generate(prompt, sp, request_id):
             if out.outputs:
                 text = out.outputs[0].text
-        return text
+                try:
+                    tids = getattr(out.outputs[0], "token_ids", None)
+                    if tids is not None:
+                        completion_tokens = max(completion_tokens, len(tids))
+                except Exception:
+                    pass
+        return text, completion_tokens
 
 
 runner = VLLMRunner()

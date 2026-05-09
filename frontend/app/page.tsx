@@ -18,11 +18,11 @@ export default function Dashboard() {
     refetchInterval: 3000,
   });
 
-  if (sys.isLoading) return <p className="text-forge-muted">Yükleniyor…</p>;
+  if (sys.isLoading) return <p className="text-forge-muted">Loading…</p>;
   if (sys.isError)
     return (
       <div className="card border-red-900 text-red-400">
-        Backend'e ulaşılamadı: {(sys.error as Error).message}
+        Cannot reach backend: {(sys.error as Error).message}
       </div>
     );
   const s = sys.data!;
@@ -32,7 +32,7 @@ export default function Dashboard() {
       <div>
         <h1 className="text-xl font-semibold">Dashboard</h1>
         <p className="text-forge-muted text-sm">
-          Compute node durumu ve yüklü model.
+          Compute node status and loaded model.
         </p>
       </div>
 
@@ -49,7 +49,7 @@ export default function Dashboard() {
         </div>
         <div className="card">
           <div className="label">CPU</div>
-          <div className="font-mono text-sm">{s.cpu_count} çekirdek</div>
+          <div className="font-mono text-sm">{s.cpu_count} cores</div>
         </div>
         <div className="card">
           <div className="label">RAM</div>
@@ -64,7 +64,7 @@ export default function Dashboard() {
           GPUs
         </h2>
         {s.gpus.length === 0 ? (
-          <div className="card text-forge-muted text-sm">GPU bulunamadı.</div>
+          <div className="card text-forge-muted text-sm">No GPU detected.</div>
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
             {s.gpus.map((g) => {
@@ -122,7 +122,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="text-forge-muted text-sm">
-              Yüklü model yok. Models sayfasından bir model yükleyin.
+              No model loaded. Load one from the Models page.
             </div>
           )}
         </div>

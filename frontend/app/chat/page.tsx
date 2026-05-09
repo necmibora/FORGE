@@ -114,7 +114,7 @@ export default function ChatPage() {
               </span>
             ) : (
               <span className="text-forge-muted">
-                Yüklü model yok — Models sayfasından bir model yükleyin.
+                No model loaded — load one from the Models page.
               </span>
             )}
           </div>
@@ -126,7 +126,7 @@ export default function ChatPage() {
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 && (
             <div className="text-forge-muted text-sm">
-              Sohbete başlamak için aşağıya yazın.
+              Type below to start a conversation.
             </div>
           )}
           {messages.map((m, i) => (
@@ -200,7 +200,7 @@ export default function ChatPage() {
             rows={6}
             value={system}
             onChange={(e) => setSystem(e.target.value)}
-            placeholder="Opsiyonel. Modelin davranışını yönlendirir."
+            placeholder="Optional. Guides model behavior."
           />
         </div>
         <div>
@@ -229,7 +229,7 @@ export default function ChatPage() {
         </div>
 
         <div className="border-t border-forge-border pt-4">
-          <label className="label">Performans · son mesaj</label>
+          <label className="label">Performance · last message</label>
           {lastUsage ? (
             <div className="space-y-1.5 text-xs font-mono">
               <div className="flex justify-between">
@@ -255,7 +255,7 @@ export default function ChatPage() {
             </div>
           ) : (
             <div className="text-forge-muted text-xs">
-              {streaming ? "Ölçülüyor…" : "Henüz mesaj gönderilmedi."}
+              {streaming ? "Measuring…" : "No messages sent yet."}
             </div>
           )}
         </div>

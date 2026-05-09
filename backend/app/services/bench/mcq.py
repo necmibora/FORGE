@@ -46,6 +46,7 @@ async def run_mcq_jsonl(
 
     done = 0
     correct = 0
+    total_tokens = 0
 
     for ex in iter_jsonl(dataset_name, limit=limit):
         if should_cancel():
@@ -60,17 +61,18 @@ async def run_mcq_jsonl(
             choices=format_choices(labels, choices),
         )
 
-        out = await runner.generate_one(
+        out, tokens = await runner.generate_one(
             prompt=prompt,
             max_tokens=max_tokens,
             temperature=temperature,
             top_p=1.0,
             stop=["\n"],
         )
+        total_tokens += tokens
         pred = parse_letter(out, labels)
         if pred is not None and pred == gold.upper():
             correct += 1
 
         done += 1
-        await on_progress(done, total, correct)
+        await on_progress(done, total, correct, total_tokens)
         yield None

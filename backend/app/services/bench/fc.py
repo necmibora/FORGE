@@ -208,6 +208,7 @@ async def run(
 
     done = 0
     correct = 0
+    total_tokens = 0
 
     for ex in iter_jsonl(NAME, limit=limit):
         if should_cancel():
@@ -220,17 +221,18 @@ async def run(
         # Format prompt using the model's chat template with tools
         prompt = runner.format_prompt_with_tools(messages, tools)
 
-        out = await runner.generate_one(
+        out, tokens = await runner.generate_one(
             prompt=prompt,
             max_tokens=max_tokens,
             temperature=temperature,
             top_p=1.0,
         )
+        total_tokens += tokens
 
         predicted = _extract_function_call(out)
         if _score_call(predicted, expected):
             correct += 1
 
         done += 1
-        await on_progress(done, total, correct)
+        await on_progress(done, total, correct, total_tokens)
         yield None

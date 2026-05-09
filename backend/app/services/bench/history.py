@@ -40,5 +40,39 @@ class BenchHistoryStore:
         with self._path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(entry.model_dump(mode="json"), ensure_ascii=False) + "\n")
 
+    def delete(self, ids: set[str]) -> int:
+        """Remove entries whose id is in `ids`. Returns number of rows deleted.
+
+        Reads the JSONL, filters, and rewrites atomically via a temp file.
+        """
+        if not ids or not self._path.exists():
+            return 0
+
+        kept: list[str] = []
+        deleted = 0
+        with self._path.open("r", encoding="utf-8") as f:
+            for line in f:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                try:
+                    obj = json.loads(stripped)
+                    if obj.get("id") in ids:
+                        deleted += 1
+                        continue
+                except Exception:
+                    pass
+                kept.append(stripped)
+
+        if deleted == 0:
+            return 0
+
+        tmp = self._path.with_suffix(self._path.suffix + ".tmp")
+        with tmp.open("w", encoding="utf-8") as f:
+            for line in kept:
+                f.write(line + "\n")
+        tmp.replace(self._path)
+        return deleted
+
 
 history_store = BenchHistoryStore(settings.benchmark_history_path)

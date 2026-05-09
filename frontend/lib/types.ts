@@ -82,6 +82,20 @@ export type BenchJobStatus =
   | "failed"
   | "cancelled";
 
+export type BenchPerfMetrics = {
+  total_tokens_generated?: number | null;
+  avg_throughput_tok_s?: number | null;
+  model_size_bytes?: number | null;
+  model_quantization?: string | null;
+  gpu_name?: string | null;
+  gpu_memory_total_mb?: number | null;
+  vram_used_peak_mb?: number | null;
+  vram_used_avg_mb?: number | null;
+  gpu_temp_avg_c?: number | null;
+  gpu_temp_peak_c?: number | null;
+  gpu_util_avg_pct?: number | null;
+};
+
 export type BenchJob = {
   id: string;
   benchmark: BenchmarkId;
@@ -97,7 +111,7 @@ export type BenchJob = {
   limit: number | null;
   temperature: number;
   max_tokens: number;
-};
+} & BenchPerfMetrics;
 
 export type BenchHistoryEntry = {
   id: string;
@@ -117,7 +131,7 @@ export type BenchHistoryEntry = {
   temperature: number;
   max_tokens: number;
   subject_count: number | null;
-};
+} & BenchPerfMetrics;
 
 export type RunBenchmarkRequest = {
   benchmark: BenchmarkId;
