@@ -24,6 +24,18 @@ class VLLMRunner:
         return self._engine is not None
 
     @property
+    def inference_available(self) -> bool:
+        try:
+            import vllm  # type: ignore
+            import torch  # type: ignore
+
+            return torch.cuda.is_available()
+        except ImportError:
+            return False
+        except Exception:
+            return False
+
+    @property
     def loaded_path(self) -> Optional[str]:
         return self._loaded_path
 

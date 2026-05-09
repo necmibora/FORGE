@@ -32,6 +32,8 @@ export type LoadedModelStatus = {
   loaded: boolean;
   path: string | null;
   quantization: string | null;
+  inference_available: boolean;
+  inference_message: string | null;
 };
 
 export type LoadModelRequest = {

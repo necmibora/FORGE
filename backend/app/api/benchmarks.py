@@ -1,3 +1,6 @@
+import time
+import uuid
+
 from fastapi import APIRouter, HTTPException
 
 from app.schemas import (
@@ -9,6 +12,7 @@ from app.schemas import (
 from app.services.bench.history import history_store
 from app.services.bench.manager import bench_manager
 from app.services.bench.registry import BENCHMARKS
+from app.services.vllm_runner import runner
 
 router = APIRouter(prefix="/benchmarks", tags=["benchmarks"])
 
@@ -30,8 +34,25 @@ async def run_benchmark(req: RunBenchmarkRequest) -> BenchJobView:
             max_tokens=req.max_tokens,
         )
     except RuntimeError as e:
-        raise HTTPException(409, str(e))
-    return job.view()
+        message = str(e)
+        if "No model loaded" in message or not runner.inference_available:
+            return BenchJobView(
+                id=str(uuid.uuid4()),
+                benchmark=req.benchmark,
+                status="failed",
+                model_path=None,
+                started_at=time.time(),
+                finished_at=time.time(),
+                examples_done=0,
+                examples_total=0,
+                correct=0,
+                score=None,
+                error=message,
+                limit=req.limit,
+                temperature=req.temperature,
+                max_tokens=req.max_tokens,
+            )
+        raise HTTPException(409, message)
 
 
 @router.get("/jobs", response_model=list[BenchJobView])

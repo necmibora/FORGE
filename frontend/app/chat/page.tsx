@@ -44,7 +44,10 @@ export default function ChatPage() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages, streaming]);
 
-  const canChat = !!loaded.data?.loaded && !streaming;
+  const canChat =
+    !!loaded.data?.loaded &&
+    loaded.data?.inference_available !== false &&
+    !streaming;
 
   async function send() {
     if (!input.trim() || !canChat) return;
@@ -105,6 +108,10 @@ export default function ChatPage() {
               <span className="font-mono">
                 {loaded.data.path?.split("/").pop()}
               </span>
+            ) : loaded.data?.inference_available === false ? (
+              <span className="text-yellow-400">
+                Inference kullanılamıyor: {loaded.data.inference_message ?? "GPU/vLLM mevcut değil."}
+              </span>
             ) : (
               <span className="text-forge-muted">
                 Yüklü model yok — Models sayfasından bir model yükleyin.
@@ -154,9 +161,13 @@ export default function ChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={
-                canChat ? "Mesajınız… (Enter ile gönder, Shift+Enter satır)" : "Model yüklenmeden chat yapılamaz."
+                loaded.data?.inference_available === false
+                  ? "Inference kullanılamıyor."
+                  : canChat
+                  ? "Mesajınız… (Enter ile gönder, Shift+Enter satır)"
+                  : "Model yüklenmeden chat yapılamaz."
               }
-              disabled={!loaded.data?.loaded}
+              disabled={!loaded.data?.loaded || loaded.data?.inference_available === false}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();

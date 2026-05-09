@@ -46,6 +46,8 @@ class LoadedModelStatus(BaseModel):
     loaded: bool
     path: Optional[str] = None
     quantization: Optional[str] = None
+    inference_available: bool = True
+    inference_message: Optional[str] = None
 
 
 class ChatMessage(BaseModel):

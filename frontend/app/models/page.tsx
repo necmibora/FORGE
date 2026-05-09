@@ -64,6 +64,11 @@ export default function ModelsPage() {
       {error && (
         <div className="card border-red-900 text-red-400 text-sm">{error}</div>
       )}
+      {loaded.data?.inference_available === false && (
+        <div className="card border-yellow-900 text-yellow-400 text-sm">
+          Inference desteği şu anda kullanılamıyor: {loaded.data.inference_message ?? "GPU veya vLLM mevcut değil."}
+        </div>
+      )}
 
       {models.isLoading && <p className="text-forge-muted">Yükleniyor…</p>}
       {models.isError && (
@@ -103,10 +108,16 @@ export default function ModelsPage() {
               </div>
               <button
                 className="btn btn-accent"
-                disabled={isBusy || isLoaded}
+                disabled={isBusy || isLoaded || !loaded.data?.inference_available}
                 onClick={() => load.mutate(m)}
               >
-                {isBusy ? "Loading…" : isLoaded ? "Active" : "Load"}
+                {isBusy
+                  ? "Loading…"
+                  : isLoaded
+                  ? "Active"
+                  : loaded.data?.inference_available === false
+                  ? "Unavailable"
+                  : "Load"}
               </button>
             </div>
           );

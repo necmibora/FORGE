@@ -18,6 +18,7 @@ def get_loaded() -> LoadedModelStatus:
         loaded=runner.loaded,
         path=runner.loaded_path,
         quantization=runner.loaded_quant,
+        inference_available=runner.inference_available,
     )
 
 
@@ -26,13 +27,31 @@ async def load_model(req: LoadModelRequest) -> LoadedModelStatus:
     try:
         await runner.load(req)
     except ImportError as e:
-        raise HTTPException(503, f"vLLM not available: {e}")
+        return LoadedModelStatus(
+            loaded=False,
+            inference_available=False,
+            inference_message=f"vLLM not available: {e}",
+        )
     except Exception as e:
+        if not runner.inference_available:
+            return LoadedModelStatus(
+                loaded=False,
+                inference_available=False,
+                inference_message=f"Inference unavailable: {e}",
+            )
         raise HTTPException(500, f"Failed to load model: {e}")
-    return LoadedModelStatus(loaded=True, path=runner.loaded_path, quantization=runner.loaded_quant)
+    return LoadedModelStatus(
+        loaded=True,
+        path=runner.loaded_path,
+        quantization=runner.loaded_quant,
+        inference_available=True,
+    )
 
 
 @router.post("/models/unload", response_model=LoadedModelStatus)
 async def unload_model() -> LoadedModelStatus:
     await runner.unload()
-    return LoadedModelStatus(loaded=False)
+    return LoadedModelStatus(
+        loaded=False,
+        inference_available=runner.inference_available,
+    )

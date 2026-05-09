@@ -8,6 +8,7 @@ httpx>=0.27
 
 [bench]
 lm-eval>=0.4.4
+pyarrow>=17
 
 [vllm]
 vllm>=0.6.0

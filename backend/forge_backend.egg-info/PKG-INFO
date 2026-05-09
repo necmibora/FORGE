@@ -14,3 +14,4 @@ Provides-Extra: vllm
 Requires-Dist: vllm>=0.6.0; extra == "vllm"
 Provides-Extra: bench
 Requires-Dist: lm-eval>=0.4.4; extra == "bench"
+Requires-Dist: pyarrow>=17; extra == "bench"

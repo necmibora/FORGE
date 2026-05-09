@@ -175,6 +175,11 @@ export default function BenchmarkPage() {
             Yuklu model yok. Once Models sayfasindan bir model yukleyin.
           </div>
         )}
+        {loaded.data?.inference_available === false && (
+          <div className="card border-yellow-900 text-sm text-yellow-400">
+            Inference kullanılamıyor: {loaded.data.inference_message ?? "GPU/vLLM mevcut değil."}
+          </div>
+        )}
 
         {error && (
           <div className="card border-red-900 text-sm text-red-400">{error}</div>
@@ -412,7 +417,7 @@ export default function BenchmarkPage() {
 
         <button
           className="btn btn-accent w-full justify-center"
-          disabled={!loaded.data?.loaded || run.isPending || isLive}
+          disabled={!loaded.data?.loaded || loaded.data?.inference_available === false || run.isPending || isLive}
           onClick={() => run.mutate()}
         >
           {run.isPending ? "Baslatiliyor..." : isLive ? "Calisiyor..." : "Calistir"}
