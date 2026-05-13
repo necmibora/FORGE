@@ -4,7 +4,7 @@
 
 On-prem framework for serving and benchmarking open-source LLMs (with vLLM) inside enterprise HPC environments where data cannot leave the datacenter.
 
-## Status — v0.1 (minimum viable backend)
+## Status
 
 - FastAPI backend with `/system`, `/models`, `/models/load|unload|loaded`, `/chat` (SSE).
 - vLLM `AsyncLLMEngine` wrapper (lazy import — server starts even without vLLM installed).
