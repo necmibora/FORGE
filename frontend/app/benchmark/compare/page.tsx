@@ -6,7 +6,11 @@ import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
-import type { BenchHistoryEntry } from "@/lib/types";
+import type {
+  BenchHistoryEntry,
+  ToolCallMismatchCategory,
+  ToolCallMismatchCounts,
+} from "@/lib/types";
 
 function modelLabel(path: string | null | undefined) {
   if (!path) return "—";
@@ -58,10 +62,35 @@ function fmtConditions(item: BenchHistoryEntry) {
   return `${sample} • temp ${item.temperature} • max ${item.max_tokens}`;
 }
 
+const TOOL_CALL_MISMATCH_LABELS: Record<ToolCallMismatchCategory, string> = {
+  correct: "Tool calls correct",
+  no_tool_call: "No tool call",
+  malformed_tool_call: "Malformed tool call",
+  wrong_tool_name: "Wrong tool name",
+  missing_argument: "Missing argument",
+  wrong_argument_value: "Wrong argument value",
+};
+
+const TOOL_CALL_MISMATCH_ORDER: ToolCallMismatchCategory[] = [
+  "correct",
+  "no_tool_call",
+  "malformed_tool_call",
+  "wrong_tool_name",
+  "missing_argument",
+  "wrong_argument_value",
+];
+
+function fmtMismatchCount(
+  counts: ToolCallMismatchCounts | undefined,
+  category: ToolCallMismatchCategory,
+) {
+  return String(counts?.[category] ?? 0);
+}
+
 type RowDef = {
   key: string;
   label: string;
-  group: "Run" | "Score" | "Performance" | "Model" | "GPU";
+  group: "Run" | "Score" | "Tool Calls" | "Performance" | "Model" | "GPU";
   render: (item: BenchHistoryEntry) => string;
 };
 
@@ -75,6 +104,13 @@ const ROWS: RowDef[] = [
   { key: "score", label: "Accuracy", group: "Score", render: (i) => fmtPercent(i.score) },
   { key: "correct", label: "Correct / Total", group: "Score", render: (i) => `${i.correct} / ${i.examples_done}` },
   { key: "wrong", label: "Wrong", group: "Score", render: (i) => String(Math.max(i.examples_done - i.correct, 0)) },
+
+  ...TOOL_CALL_MISMATCH_ORDER.map((category): RowDef => ({
+    key: `tool_call_${category}`,
+    label: TOOL_CALL_MISMATCH_LABELS[category],
+    group: "Tool Calls",
+    render: (i) => fmtMismatchCount(i.tool_call_mismatches, category),
+  })),
 
   { key: "tokens", label: "Total tokens", group: "Performance", render: (i) => fmtInt(i.total_tokens_generated) },
   { key: "throughput", label: "Avg tok/s", group: "Performance", render: (i) => fmtNum(i.avg_throughput_tok_s, 1) },
@@ -122,7 +158,7 @@ function CompareView() {
   const missing = ids.length - items.length;
 
   const groups = useMemo(() => {
-    const order: RowDef["group"][] = ["Run", "Score", "Performance", "Model", "GPU"];
+    const order: RowDef["group"][] = ["Run", "Score", "Tool Calls", "Performance", "Model", "GPU"];
     return order.map((g) => ({ name: g, rows: ROWS.filter((r) => r.group === g) }));
   }, []);
 

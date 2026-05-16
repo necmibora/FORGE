@@ -96,6 +96,18 @@ export type BenchPerfMetrics = {
   gpu_util_avg_pct?: number | null;
 };
 
+export type ToolCallMismatchCategory =
+  | "correct"
+  | "no_tool_call"
+  | "malformed_tool_call"
+  | "wrong_tool_name"
+  | "missing_argument"
+  | "wrong_argument_value";
+
+export type ToolCallMismatchCounts = Partial<
+  Record<ToolCallMismatchCategory, number>
+>;
+
 export type BenchJob = {
   id: string;
   benchmark: BenchmarkId;
@@ -111,6 +123,7 @@ export type BenchJob = {
   limit: number | null;
   temperature: number;
   max_tokens: number;
+  tool_call_mismatches: ToolCallMismatchCounts;
 } & BenchPerfMetrics;
 
 export type BenchHistoryEntry = {
@@ -131,6 +144,7 @@ export type BenchHistoryEntry = {
   temperature: number;
   max_tokens: number;
   subject_count: number | null;
+  tool_call_mismatches: ToolCallMismatchCounts;
 } & BenchPerfMetrics;
 
 export type RunBenchmarkRequest = {

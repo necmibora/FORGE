@@ -12,7 +12,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from app.schemas import BenchHistoryEntry, BenchJobStatus, BenchJobView
+from app.schemas import (
+    BenchHistoryEntry,
+    BenchJobStatus,
+    BenchJobView,
+    ToolCallMismatchCategory,
+)
 from app.services.bench import arc, fc, mmlu
 from app.services.bench.history import history_store
 from app.services.bench.registry import BENCHMARKS
@@ -51,6 +56,7 @@ class BenchJob:
     gpu_temp_avg_c: Optional[float] = None
     gpu_temp_peak_c: Optional[int] = None
     gpu_util_avg_pct: Optional[float] = None
+    tool_call_mismatches: dict[ToolCallMismatchCategory, int] = field(default_factory=dict)
 
     def view(self) -> BenchJobView:
         return BenchJobView(
@@ -79,6 +85,7 @@ class BenchJob:
             gpu_temp_avg_c=self.gpu_temp_avg_c,
             gpu_temp_peak_c=self.gpu_temp_peak_c,
             gpu_util_avg_pct=self.gpu_util_avg_pct,
+            tool_call_mismatches=self.tool_call_mismatches,
         )
 
 
@@ -230,11 +237,19 @@ class BenchManager:
         job.status = "running"
         job.started_at = time.time()
 
-        async def on_progress(done: int, total: int, correct: int, tokens: int = 0) -> None:
+        async def on_progress(
+            done: int,
+            total: int,
+            correct: int,
+            tokens: int = 0,
+            tool_call_mismatches: Optional[dict[ToolCallMismatchCategory, int]] = None,
+        ) -> None:
             job.examples_done = done
             job.examples_total = total
             job.correct = correct
             job.total_tokens_generated = tokens
+            if tool_call_mismatches is not None:
+                job.tool_call_mismatches = dict(tool_call_mismatches)
             # Periodic intermediate score so the UI can display a live number.
             if done > 0:
                 job.score = correct / done
@@ -339,6 +354,7 @@ class BenchManager:
                 gpu_temp_avg_c=job.gpu_temp_avg_c,
                 gpu_temp_peak_c=job.gpu_temp_peak_c,
                 gpu_util_avg_pct=job.gpu_util_avg_pct,
+                tool_call_mismatches=job.tool_call_mismatches,
             )
         )
 

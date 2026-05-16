@@ -10,6 +10,8 @@ import type {
   BenchJob,
   BenchmarkId,
   BenchmarkInfo,
+  ToolCallMismatchCategory,
+  ToolCallMismatchCounts,
 } from "@/lib/types";
 
 const STATUS_LABELS: Record<BenchJob["status"], string> = {
@@ -25,6 +27,24 @@ const KIND_LABELS: Record<string, string> = {
   generation: "generation",
   function_calling: "function calling",
 };
+
+const TOOL_CALL_MISMATCH_LABELS: Record<ToolCallMismatchCategory, string> = {
+  correct: "Correct",
+  no_tool_call: "No tool call",
+  malformed_tool_call: "Malformed",
+  wrong_tool_name: "Wrong tool",
+  missing_argument: "Missing arg",
+  wrong_argument_value: "Wrong value",
+};
+
+const TOOL_CALL_MISMATCH_ORDER: ToolCallMismatchCategory[] = [
+  "correct",
+  "no_tool_call",
+  "malformed_tool_call",
+  "wrong_tool_name",
+  "missing_argument",
+  "wrong_argument_value",
+];
 
 /** FC benchmarks need more tokens to produce a full JSON call. */
 function defaultMaxTokens(kind: string | undefined): number {
@@ -58,6 +78,28 @@ function historyConditions(item: BenchHistoryEntry) {
   const sample = `${requested}/${item.examples_total || "?"} ex`;
   const subjectText = item.subject_count ? ` - ${item.subject_count} subject` : "";
   return `${sample}${subjectText} - temp ${item.temperature} - max ${item.max_tokens}`;
+}
+
+function hasToolCallMismatches(counts: ToolCallMismatchCounts | undefined) {
+  return Object.values(counts ?? {}).some((count) => (count ?? 0) > 0);
+}
+
+function ToolCallMismatchGrid({
+  counts,
+}: {
+  counts: ToolCallMismatchCounts | undefined;
+}) {
+  if (!hasToolCallMismatches(counts)) return null;
+  return (
+    <div className="grid gap-2 text-xs md:grid-cols-3">
+      {TOOL_CALL_MISMATCH_ORDER.map((key) => (
+        <div key={key} className="rounded border border-forge-border p-2">
+          <div className="text-forge-muted">{TOOL_CALL_MISMATCH_LABELS[key]}</div>
+          <div className="font-mono text-forge-text">{counts?.[key] ?? 0}</div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function BenchmarkPage() {
@@ -335,6 +377,8 @@ export default function BenchmarkPage() {
               </div>
             )}
 
+            <ToolCallMismatchGrid counts={j.tool_call_mismatches} />
+
             {j.error && (
               <div className="rounded border border-red-900 p-2 text-xs text-red-400">
                 {j.error}
@@ -472,6 +516,8 @@ export default function BenchmarkPage() {
                     {item.error}
                   </div>
                 )}
+
+                <ToolCallMismatchGrid counts={item.tool_call_mismatches} />
               </div>
               );
             })}

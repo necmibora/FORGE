@@ -67,6 +67,14 @@ class ChatRequest(BaseModel):
 
 BenchmarkId = Literal["arc_easy", "mmlu", "bfcl_simple"]
 BenchJobStatus = Literal["queued", "running", "completed", "failed", "cancelled"]
+ToolCallMismatchCategory = Literal[
+    "correct",
+    "no_tool_call",
+    "malformed_tool_call",
+    "wrong_tool_name",
+    "missing_argument",
+    "wrong_argument_value",
+]
 
 
 class BenchmarkInfo(BaseModel):
@@ -117,6 +125,8 @@ class BenchJobView(BaseModel):
     gpu_temp_avg_c: Optional[float] = None
     gpu_temp_peak_c: Optional[int] = None
     gpu_util_avg_pct: Optional[float] = None
+    # Function-calling benchmark diagnostics.
+    tool_call_mismatches: dict[ToolCallMismatchCategory, int] = Field(default_factory=dict)
 
 
 class DeleteHistoryRequest(BaseModel):
@@ -157,3 +167,5 @@ class BenchHistoryEntry(BaseModel):
     gpu_temp_avg_c: Optional[float] = None
     gpu_temp_peak_c: Optional[int] = None
     gpu_util_avg_pct: Optional[float] = None
+    # Function-calling benchmark diagnostics.
+    tool_call_mismatches: dict[ToolCallMismatchCategory, int] = Field(default_factory=dict)
