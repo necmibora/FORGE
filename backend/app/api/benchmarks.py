@@ -35,6 +35,7 @@ async def run_benchmark(req: RunBenchmarkRequest) -> BenchJobView:
             temperature=req.temperature,
             max_tokens=req.max_tokens,
         )
+        return job.view()
     except RuntimeError as e:
         message = str(e)
         if "No model loaded" in message or not runner.inference_available:
